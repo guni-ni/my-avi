@@ -1,0 +1,705 @@
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 400;
+  font-size: 14px;
+  letter-spacing: .06em;
+  line-height: 1.9;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+/* paper grain */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: .28;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .58 0 0 0 0 .40 0 0 0 0 .47 0 0 0 .5 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  /* 独立したレイヤーに固定して、スクロールのたびに描き直させない */
+  transform: translateZ(0);
+}
+body > * { position: relative; z-index: 1; }
+
+/* ---------- 上下の白い縁飾り ----------
+   ドレスの裾のような、帆立貝形（スカラップ）にレースの透かしを入れた帯。
+   動かない。この手前を背景の動画が横切る。 */
+/* 縁飾りの高さ。フッターの余白もこれに合わせるので、変えるならここだけ */
+:root { --fluff-h: 52px; }
+
+.fluff {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.fluff-edge {
+  --r: 13px;                        /* 帆立貝の半径 */
+  --scallop: calc(var(--r) * 2);    /* ひとつぶんの幅 */
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: var(--fluff-h);
+  background: #fff;
+}
+
+/* 上の帯。下のふちに半円を並べて、外へ膨らませる。
+   円を切り抜くと逆に山が尖るので、四角い本体に半円を足す形で作る。 */
+.fluff-top {
+  top: 0;
+  background:
+    /* リボンを通す穴（小） */
+    radial-gradient(circle 2px at 50% 30px, var(--paper) 99%, transparent 100%)
+      0 0 / var(--scallop) 100%,
+    /* レースの透かし（大） */
+    radial-gradient(circle 4.5px at 50% 18px, var(--paper) 99%, transparent 100%)
+      var(--r) 0 / var(--scallop) 100%,
+    #fff;
+  -webkit-mask:
+    radial-gradient(circle var(--r) at 50% 0, #000 99%, transparent 100%)
+      0 100% / var(--scallop) var(--r) repeat-x,
+    linear-gradient(#000, #000)
+      0 0 / 100% calc(100% - var(--r) + 1px) no-repeat;
+  mask:
+    radial-gradient(circle var(--r) at 50% 0, #000 99%, transparent 100%)
+      0 100% / var(--scallop) var(--r) repeat-x,
+    linear-gradient(#000, #000)
+      0 0 / 100% calc(100% - var(--r) + 1px) no-repeat;
+}
+
+/* 下の帯。上下を逆にしたもの */
+.fluff-bottom {
+  bottom: 0;
+  background:
+    radial-gradient(circle 2px at 50% 22px, var(--paper) 99%, transparent 100%)
+      0 0 / var(--scallop) 100%,
+    radial-gradient(circle 4.5px at 50% 34px, var(--paper) 99%, transparent 100%)
+      var(--r) 0 / var(--scallop) 100%,
+    #fff;
+  -webkit-mask:
+    radial-gradient(circle var(--r) at 50% 100%, #000 99%, transparent 100%)
+      0 0 / var(--scallop) var(--r) repeat-x,
+    linear-gradient(#000, #000)
+      0 100% / 100% calc(100% - var(--r) + 1px) no-repeat;
+  mask:
+    radial-gradient(circle var(--r) at 50% 100%, #000 99%, transparent 100%)
+      0 0 / var(--scallop) var(--r) repeat-x,
+    linear-gradient(#000, #000)
+      0 100% / 100% calc(100% - var(--r) + 1px) no-repeat;
+}
+
+@media (max-width: 760px) {
+  :root { --fluff-h: 38px; }
+  .fluff-edge { --r: 10px; }
+  .fluff-top {
+    background:
+      radial-gradient(circle 1.5px at 50% 22px, var(--paper) 99%, transparent 100%) 0 0 / var(--scallop) 100%,
+      radial-gradient(circle 3.5px at 50% 13px, var(--paper) 99%, transparent 100%) var(--r) 0 / var(--scallop) 100%,
+      #fff;
+  }
+  .fluff-bottom {
+    background:
+      radial-gradient(circle 1.5px at 50% 16px, var(--paper) 99%, transparent 100%) 0 0 / var(--scallop) 100%,
+      radial-gradient(circle 3.5px at 50% 25px, var(--paper) 99%, transparent 100%) var(--r) 0 / var(--scallop) 100%,
+      #fff;
+  }
+}
+
+/* たまに横切る透過動画。
+   一覧の奥に置くのでカードには隠れる。左右は画面いっぱいに伸ばして、
+   端から出て端へ抜けるようにする。高さは縦横比のまま。
+   --bg-video-drop で、画面のどのくらい下を通るか決める
+   （大きくするほど下。素材の被写体が中央寄りなら増やす）。 */
+.bg-video {
+  --bg-video-size: 150;   /* 画面幅に対する % */
+  --bg-video-drop: 27%;   /* 足もとが下の縁飾りに軽く乗るくらい */
+  position: fixed;
+  left: calc(50vw - 0.5vw * var(--bg-video-size));   /* 中央に置く */
+  bottom: 0;
+  width: calc(1vw * var(--bg-video-size));
+  height: auto;
+  /* 読み込み前は video の既定サイズ（300x150）になってしまうので、
+     いったん 16:9 で見積もる。メタデータが来たら実際の比率が優先される。 */
+  aspect-ratio: 16 / 9;
+  transform: translateY(var(--bg-video-drop));
+  pointer-events: none;
+  z-index: 3;          /* ふわふわ（2）より手前を通す */
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.bg-video.is-on { opacity: 1; }
+
+/* 画面が狭いほど被写体が小さく見えるので、そのぶん引き伸ばす。
+   縦位置は --bg-video-drop のままでほぼ変わらない（画面下端あたりを通る）。 */
+@media (max-width: 760px) {
+  .bg-video { --bg-video-size: 240; }
+}
+@media (max-width: 480px) {
+  .bg-video { --bg-video-size: 320; }
+}
+button { font: inherit; letter-spacing: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 3px; border-radius: 8px; }
+
+/* ---------- 起動時のスプラッシュ ----------
+   ピンクの地にアイコンだけを出し、地がフェードで消えるあいだに
+   アイコンをヘッダーの定位置へ移動させる。 */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+.splash-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 46%, #fff8fa 0%, var(--paper) 52%, #f7e1eb 100%);
+  /* 序盤で一気に薄くならないよう、ゆるやかに時間をかけて消す */
+  transition: opacity 1.6s cubic-bezier(.45, 0, .5, 1) .2s;
+}
+.splash.is-done .splash-bg { opacity: 0; }
+.splash-avatar {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 132px; height: 132px;
+  margin: -66px 0 0 -66px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--card);
+  border: 3px solid var(--card);
+  box-shadow: 0 12px 34px rgba(170, 120, 140, .22);
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.splash-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* 画像が来るまでは淡く脈打たせておく */
+.splash-avatar.is-waiting { animation: avatar-pulse 1.6s ease-in-out infinite; }
+.splash-avatar.is-moving {
+  transition: transform 1.7s cubic-bezier(.5, 0, .18, 1), box-shadow 1.7s ease;
+}
+.splash.is-done .splash-avatar { box-shadow: var(--shadow); }
+/* 移動しきるまで、ヘッダー側の本物は場所だけ取って隠しておく */
+body.is-splashing { overflow: hidden; }
+body.is-splashing header .avatar { visibility: hidden; }
+
+/* ---------- 上に居座る小さいアイコン ----------
+   ヘッダーのアイコンが上の縁飾りに隠れたら、その左端に出てくる。
+   押すといちばん上にもどる。 */
+.mini-avatar {
+  --mini: 56px;
+  --mini-out: 18px;   /* 帯の下からはみ出す量 */
+  position: fixed;
+  /* 帯に半分ほど埋まって、下から顔を出す位置。左右はリボンと同じ間合い */
+  top: calc(var(--fluff-h) - var(--mini) + var(--mini-out));
+  left: 28px;
+  width: var(--mini);
+  height: var(--mini);
+  padding: 0;
+  /* 帯が白なので、白い枠だと輪郭が消える。淡い線で縁取る */
+  /* 白い帯からはみ出すので、白い枠で帯となじませつつ影で浮かせる */
+  border: 3px solid var(--card);
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: 0 4px 14px rgba(170, 120, 140, .28);
+  overflow: hidden;
+  z-index: 6;              /* 縁飾り（2）とリボン（5）より前 */
+  opacity: 0;
+  transform: translateY(-8px) scale(.75);
+  transition: opacity .3s ease, transform .35s cubic-bezier(.22, 1, .36, 1);
+  pointer-events: none;
+}
+.mini-avatar.is-on {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.mini-avatar[hidden] { display: none; }
+.mini-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mini-avatar:hover { border-color: var(--accent); }
+@media (max-width: 760px) {
+  .mini-avatar { --mini: 44px; --mini-out: 14px; left: 16px; border-width: 2px; }
+}
+
+/* ---------- corner ribbon ---------- */
+.ribbon {
+  position: fixed;
+  top: 0; right: 28px;
+  width: 40px; height: 52px;
+  background: var(--accent-deep);
+  color: #fff;
+  font-size: 11px;
+  text-align: center;
+  padding-top: 10px;
+  letter-spacing: .1em;
+  z-index: 5;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+  box-shadow: var(--shadow);
+}
+.ribbon:empty { display: none; }
+
+/* ---------- header ---------- */
+header {
+  text-align: center;
+  padding: 56px 20px 28px;
+}
+.avatar {
+  width: 84px; height: 84px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 3px solid var(--card);
+  box-shadow: var(--shadow);
+  margin: 0 auto 14px;
+  overflow: hidden;
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* 読み込み中はアイコンだけ淡く脈打たせておく */
+.avatar.is-loading { animation: avatar-pulse 1.6s ease-in-out infinite; }
+@keyframes avatar-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(240, 168, 190, .55); }
+  50%      { box-shadow: 0 0 0 9px rgba(240, 168, 190, 0); }
+}
+/* アイコンは押せる。押すとぷるっと震え、5 回で一回転する（隠し要素） */
+.avatar { cursor: pointer; user-select: none; -webkit-user-select: none; }
+@keyframes avatar-wobble {
+  0%, 100% { transform: rotate(0) scale(1); }
+  30%      { transform: rotate(-7deg) scale(1.04); }
+  70%      { transform: rotate(7deg) scale(1.04); }
+}
+.avatar.is-wobbling { animation: avatar-wobble .3s ease; }
+@keyframes avatar-spin {
+  0%   { transform: rotate(0) scale(1); }
+  50%  { transform: rotate(180deg) scale(1.14); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+.avatar.is-spinning { animation: avatar-spin .75s cubic-bezier(.4, 0, .2, 1); }
+
+/* 一回転のときに飛ぶ粒 */
+.sparkle {
+  position: fixed;
+  width: 7px; height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: var(--accent-deep);
+  pointer-events: none;
+  z-index: 60;
+  animation: sparkle-fly .65s ease-out forwards;
+}
+@keyframes sparkle-fly {
+  from { transform: translate(0, 0) scale(1); opacity: .9; }
+  to   { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+}
+
+header .site-title, header .site-sub { transition: opacity .5s ease; }
+body.is-loading header .site-title,
+body.is-loading header .site-sub { opacity: 0; }
+.site-title {
+  font-weight: 500;
+  font-size: 21px;
+  letter-spacing: .18em;
+  margin: 0;
+  line-height: 1.5;
+}
+.site-sub {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+  letter-spacing: .12em;
+}
+
+/* ---------- tag filter ---------- */
+.tags-wrap {
+  max-width: 940px;      /* 一覧と幅を揃える */
+  margin: 0 auto;
+  padding: 0 20px 24px;
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  /* 既定は 2 行まで。あふれたら「ほか N 件」で開く */
+  max-height: 58px;
+  overflow: hidden;
+  transition: max-height .25s ease;
+}
+.tags.is-expanded { max-height: 400px; overflow-y: auto; }
+.tags:empty { display: none; }
+.tags-more {
+  display: block;
+  margin: 7px auto 0;
+  border: 0;
+  background: transparent;
+  padding: 0 2px 1px;
+  font-size: 10px;
+  color: var(--ink-soft);
+  letter-spacing: .1em;
+  border-bottom: 1px dashed var(--line);
+}
+.tags-more[hidden] { display: none; }   /* display:block が hidden 属性に勝ってしまうため */
+.tags-more:hover { color: var(--accent-deep); border-bottom-color: var(--accent-deep); }
+.tag {
+  border: 1px dashed var(--line);
+  background: transparent;
+  border-radius: 999px;
+  padding: 2px 12px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  letter-spacing: .08em;
+}
+.tag:hover { border-color: var(--accent); color: var(--accent-deep); }
+.tag.is-active {
+  background: var(--accent-deep);
+  border-color: var(--accent-deep);
+  border-style: solid;
+  color: #fff;
+}
+.tag.is-active:hover { color: #fff; }
+
+/* ---------- sort ---------- */
+.sorts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 0 20px 26px;
+  margin-top: -14px;
+}
+.sorts:empty { display: none; }
+.sorts .sort-label {
+  font-size: 10px;
+  color: var(--ink-soft);
+  letter-spacing: .1em;
+  margin-right: 4px;
+}
+.sort {
+  border: 0;
+  background: transparent;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  letter-spacing: .08em;
+  border-bottom: 1px solid transparent;
+}
+.sort:hover { color: var(--ink); }
+.sort.is-active {
+  color: var(--accent-deep);
+  border-bottom-color: var(--accent-deep);
+}
+
+/* ---------- masonry grid ----------
+   CSS の段組み（column-width）は縦に流れて 1,2,3 が縦に並んでしまうので、
+   JS で列に振り分けて「左上から右下」の順にしている。 */
+.grid {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 0 20px 80px;
+  display: flex;
+  align-items: flex-start;
+  gap: 22px;
+}
+.grid-col {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.card-wrap {
+  padding: 6px 0 22px;
+  position: relative;
+}
+.card {
+  display: block;
+  width: 100%;
+  background: var(--card);
+  border: 0;
+  border-radius: var(--radius);
+  padding: 10px 10px 10px;
+  text-align: left;
+  box-shadow: var(--shadow);
+  position: relative;
+  transition: transform .14s ease;
+}
+.card:hover { transform: translateY(-3px); }
+/* ピン留めしたものは淡いピンクの縁で分かるようにする */
+.card-wrap.is-pinned > .card { box-shadow: 0 0 0 1.5px var(--accent), var(--shadow); }
+.card::before, .card::after { transition: transform .16s ease; }
+.card-wrap[data-stack="2"] .card:hover::before,
+.card-wrap[data-stack="3"] .card:hover::before { transform: rotate(-4deg) translate(-7px, 6px); }
+.card-wrap[data-stack="3"] .card:hover::after { transform: rotate(3.5deg) translate(8px, 5px); }
+/* stacked sheets behind multi-photo albums */
+.card-wrap[data-stack="2"] .card::before,
+.card-wrap[data-stack="3"] .card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transform: rotate(-2.5deg) translate(-4px, 4px);
+  z-index: -1;
+}
+.card-wrap[data-stack="3"] .card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transform: rotate(2deg) translate(5px, 3px);
+  z-index: -2;
+}
+.card .thumb {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  background: var(--paper);
+  /* 写真はパッと出さず、読み込めたぶんからふわっと出す */
+  opacity: 0;
+  transition: opacity .45s ease;
+}
+.card .thumb.is-loaded { opacity: 1; }
+.card .thumb[src=""] { display: none; }
+/* 表紙が無く動画だけのとき、カードに出す印 */
+.thumb-none {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--accent-deep);
+  font-size: 22px;
+}
+
+/* ---------- 読み込み中のプレースホルダ ---------- */
+.skeleton {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 10px;
+}
+.sk-thumb, .sk-line {
+  border-radius: 12px;
+  background: linear-gradient(100deg,
+    var(--paper) 20%, #fff9fb 42%, var(--accent) 50%, #fff9fb 58%, var(--paper) 80%);
+  background-size: 300% 100%;
+  animation: sk-shimmer 1.8s ease-in-out infinite;
+  opacity: .5;
+}
+.sk-line {
+  height: 10px;
+  border-radius: 999px;
+  margin: 14px 8px 0;
+}
+.sk-line.short { width: 45%; margin-top: 8px; }
+@keyframes sk-shimmer {
+  from { background-position: 150% 0; }
+  to   { background-position: -150% 0; }
+}
+
+/* カードは下からふわっと現れる */
+@keyframes card-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+.card-wrap.is-entering { animation: card-rise .5s cubic-bezier(.22, 1, .36, 1) both; }
+.card-body { padding: 12px 8px 4px; }
+.card h2 {
+  font-weight: 400;
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.7;
+}
+.card .card-tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.card .card-tags span {
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: 10px;
+  color: var(--ink-soft);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-tags .rest { border-style: solid; }
+.card-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 8px 2px;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+.card-foot .pin { color: var(--accent-deep); font-size: 13px; }
+.empty {
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 12px;
+  padding: 40px 0;
+  width: 100%;
+}
+
+/* ---------- detail ---------- */
+.detail {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* backdrop-filter: blur() は「背後を毎フレームぼかし直す」ので、
+     開いたあとのスクロールがそのぶん重くなる。ほぼ不透明な地にして外した。 */
+  background: rgba(253, 243, 246, .97);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .18s ease, visibility 0s linear .18s;
+}
+.detail.is-open {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .18s ease;
+}
+body.is-locked { overflow: hidden; }
+/* 詳細を開いている間、背後は完全に隠れている。
+   描画対象から外しておくとスクロールが軽くなる（位置は保たれるので
+   閉じるときの縮小アニメーションはそのまま動く）。 */
+body.is-bg-hidden header,
+body.is-bg-hidden .tags-wrap,
+body.is-bg-hidden .sorts,
+body.is-bg-hidden .grid,
+body.is-bg-hidden footer { visibility: hidden; }
+
+.detail-tools {
+  position: fixed;
+  top: 14px; left: 14px;
+  display: flex;
+  gap: 8px;
+  z-index: 6;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity .18s ease .1s, transform .18s ease .1s;
+}
+.detail.is-open .detail-tools { opacity: 1; transform: none; }
+.icon-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  display: grid;
+  place-items: center;
+  color: var(--ink-soft);
+}
+.icon-btn:hover { color: var(--accent-deep); }
+.icon-btn svg { width: 16px; height: 16px; }
+
+.sheet {
+  width: min(100% - 32px, 520px);
+  margin: 72px auto 100px;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 50px rgba(110, 85, 70, .16), 0 2px 6px rgba(110, 85, 70, .06);
+  padding: 10px 10px 8px;
+  transform-origin: 0 0;
+}
+/* will-change は動いている間だけ。常に付けると写真の並ぶシートが
+   まるごと合成レイヤーに載り続けて、スクロールが重くなる。 */
+.sheet.is-animating {
+  will-change: transform;
+  transition: transform .24s cubic-bezier(.22, 1, .36, 1);
+}
+.sheet .cover {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  background: var(--paper);
+}
+.sheet .cover[src=""] { display: none; }
+/* everything below the cover fades in after the card has grown */
+.sheet .body {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .18s ease .08s, transform .18s ease .08s;
+}
+.sheet:not(.is-ready) .body { height: 0; overflow: hidden; }
+.sheet.is-ready .body { opacity: 1; transform: none; }
+.sheet .head { padding: 12px 10px 6px; }
+.sheet .head h1 {
+  font-weight: 400;
+  font-size: 15px;
+  margin: 0;
+  line-height: 1.8;
+}
+.sheet .head time { font-size: 11px; color: var(--ink-soft); }
+.sheet .photo { margin: 6px 0 0; }
+.sheet .photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  background: var(--paper);
+}
+.sheet .photo video {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  background: #000;
+}
+.sheet .photo figcaption {
+  text-align: right;
+  font-size: 11px;
+  color: var(--ink-soft);
+  padding: 4px 6px 0;
+}
+.sheet .text {
+  padding: 10px 10px 10px;
+  margin: 0;
+  white-space: pre-line;
+  line-height: 2;
+}
+.sheet .foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 10px 4px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  border-top: 1px dashed var(--line);
+}
+.sheet .foot .pin { color: var(--accent-deep); font-size: 13px; }
+.sheet .card-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.sheet .card-tags span {
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: 10px;
+}
+/* the card that was opened stays quietly in place */
+.card-wrap.is-source .card { opacity: 0; }
+.card-wrap.is-source .card::before,
+.card-wrap.is-source .card::after { opacity: 0; }
+
+footer {
+  text-align: center;
+  font-size: 11px;
+  color: var(--ink-soft);
+  /* 下の縁飾りは画面に貼り付いているので、そのぶん余白を取って隠れないようにする */
+  padding: 0 20px calc(var(--fluff-h) + 28px);
+  letter-spacing: .1em;
+}
+footer a { color: inherit; text-decoration: none; border-bottom: 1px dashed var(--line); }
+footer a:hover { color: var(--accent-deep); }
+.edit-link { margin-left: 10px; }
+.updated { margin-left: 10px; }
+.updated:empty { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .card::before, .card::after, .sheet, .sheet .body, .detail, .detail-tools { transition: none !important; }
+  .card-wrap.is-entering, .sk-thumb, .sk-line, .avatar.is-loading { animation: none !important; }
+  .card .thumb { opacity: 1 !important; transition: none !important; }
+}

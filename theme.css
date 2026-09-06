@@ -1,0 +1,19 @@
+/* 公開ページと編集画面で共通の配色。
+   片方だけ直して見た目が食い違うのを防ぐため、ここにまとめている。
+   個別の値（--radius など）は各 CSS の側で上書きする。 */
+:root {
+  --paper: #fdf3f6;        /* ほんのりピンクの地 */
+  --card: #ffffff;
+  --ink: #6e5661;          /* 本文 */
+  --ink-soft: #ad95a1;     /* 日付・タグなどの補助 */
+  --line: #f3dfe6;         /* 罫線 */
+
+  /* パステル 1 色だと白文字が読めないので、面用と文字用で 2 段階持つ */
+  --accent: #f0a8be;       /* 淡いピンク（面・囲み） */
+  --accent-deep: #c9678a;  /* 濃いピンク（文字・強調・白文字を載せる面） */
+  --danger: #c2566d;       /* 削除などの注意 */
+
+  --font: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+  --radius: 18px;
+  --shadow: 0 4px 14px rgba(170, 120, 140, .10), 0 1px 3px rgba(170, 120, 140, .06);
+}
