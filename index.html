@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>改変のーと</title>
+<link rel="icon" type="image/png" href="./favicon.png">
+<link rel="apple-touch-icon" href="./favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./theme.css">
+<link rel="stylesheet" href="./style.css">
+
+<meta name="description" content="改変写真おきば">
+<meta name="theme-color" content="#fdf3f6">
+<link rel="canonical" href="https://guni-ni.github.io/my-avi/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="改変のーと">
+<meta property="og:title" content="改変のーと">
+<meta property="og:description" content="改変写真おきば">
+<meta property="og:url" content="https://guni-ni.github.io/my-avi/">
+<meta property="og:image" content="https://guni-ni.github.io/my-avi/uploads/20260902-VRChat_2026-01-14_15-19-25-481_3840x2160-cb5549.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="改変のーと">
+<meta name="twitter:description" content="改変写真おきば">
+<meta name="twitter:image" content="https://guni-ni.github.io/my-avi/uploads/20260902-VRChat_2026-01-14_15-19-25-481_3840x2160-cb5549.jpg">
+</head>
+<body class="is-loading is-splashing">
+
+<div class="splash" id="splash" aria-hidden="true">
+  <div class="splash-bg"></div>
+  <div class="splash-avatar" id="splash-avatar"><img id="splash-img" src="" alt=""></div>
+</div>
+
+<div class="fluff" aria-hidden="true">
+  <div class="fluff-edge fluff-top"></div>
+  <div class="fluff-edge fluff-bottom"></div>
+</div>
+
+<video class="bg-video" id="bg-video" muted playsinline preload="metadata" aria-hidden="true"></video>
+
+<button class="mini-avatar" id="mini-avatar" type="button" hidden aria-label="いちばん上にもどる">
+  <img id="mini-avatar-img" src="" alt="">
+</button>
+
+<div class="ribbon" id="ribbon" aria-hidden="true"></div>
+
+<header>
+  <div class="avatar is-loading"><img id="avatar" src="" alt=""></div>
+  <h1 class="site-title" id="site-title"></h1>
+  <p class="site-sub" id="site-sub"></p>
+</header>
+
+<div class="tags-wrap">
+  <nav class="tags" id="tags" aria-label="タグで絞り込み"></nav>
+  <button class="tags-more" id="tags-more" type="button" hidden></button>
+</div>
+<nav class="sorts" id="sorts" aria-label="並び順"></nav>
+
+<main class="grid" id="grid" aria-label="アルバム一覧"></main>
+
+<div class="detail" id="detail" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+  <div class="detail-tools">
+    <button class="icon-btn" type="button" id="close" aria-label="一覧にもどる">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5 8 3l6 5.5"/><path d="M4 7.5V13h8V7.5"/></svg>
+    </button>
+  </div>
+  <article class="sheet" id="sheet"></article>
+</div>
+
+<footer>
+  © <span id="year"></span> <span id="site-footer"></span>
+  <span class="updated" id="site-updated"></span>
+</footer>
+
+<script src="./app.js"></script>
+
+</body>
+</html>
